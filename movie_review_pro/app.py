@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import tensorflow as tf
 import numpy as np
@@ -15,21 +16,26 @@ st.set_page_config(
 )
 
 # -----------------------------
+# Base Directory
+# -----------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# -----------------------------
 # Load Models
 # -----------------------------
 @st.cache_resource
 def load_models():
 
     simple_rnn = tf.keras.models.load_model(
-        "simple_rnn_model.h5"
+        os.path.join(BASE_DIR, "simple_rnn_model.h5")
     )
 
     lstm = tf.keras.models.load_model(
-        "lstm_model.h5"
+        os.path.join(BASE_DIR, "lstm_model.h5")
     )
 
     gru = tf.keras.models.load_model(
-        "gru_model.h5"
+        os.path.join(BASE_DIR, "gru_model.h5")
     )
 
     return simple_rnn, lstm, gru
@@ -38,7 +44,10 @@ def load_models():
 @st.cache_resource
 def load_tokenizer():
 
-    with open("tokenizer.pkl", "rb") as f:
+    with open(
+        os.path.join(BASE_DIR, "tokenizer.pkl"),
+        "rb"
+    ) as f:
         tokenizer = pickle.load(f)
 
     return tokenizer
@@ -91,10 +100,12 @@ def predict_review(model, text):
         truncating='post'
     )
 
-    prob = float(model.predict(
-        padded,
-        verbose=0
-    )[0][0])
+    prob = float(
+        model.predict(
+            padded,
+            verbose=0
+        )[0][0]
+    )
 
     sentiment = (
         "Positive"
@@ -103,9 +114,9 @@ def predict_review(model, text):
     )
 
     confidence = (
-        prob*100
+        prob * 100
         if prob >= 0.5
-        else (1-prob)*100
+        else (1 - prob) * 100
     )
 
     return sentiment, confidence, prob
@@ -133,14 +144,12 @@ if st.button("Analyze Review"):
         review
     )
 
-    # -----------------------------
-    # Output
-    # -----------------------------
     st.subheader("Prediction Result")
 
-    st.success(
-        f"Sentiment: {sentiment}"
-    )
+    if sentiment == "Positive":
+        st.success(f"Sentiment: {sentiment}")
+    else:
+        st.error(f"Sentiment: {sentiment}")
 
     st.info(
         f"Confidence: {confidence:.2f}%"
@@ -172,7 +181,8 @@ if st.button("Analyze Review"):
 
     fig.update_layout(
         title="Prediction Probabilities",
-        yaxis_title="Probability (%)"
+        yaxis_title="Probability (%)",
+        barmode="group"
     )
 
     st.plotly_chart(
@@ -187,9 +197,11 @@ if st.button("Analyze Review"):
         go.Indicator(
             mode="gauge+number",
             value=confidence,
-            title={"text":"Confidence"},
+            title={"text": "Confidence"},
             gauge={
-                "axis":{"range":[0,100]}
+                "axis": {
+                    "range": [0, 100]
+                }
             }
         )
     )
@@ -229,7 +241,7 @@ if st.button("Compare Models"):
         results.append({
             "Model": name,
             "Sentiment": sentiment,
-            "Confidence (%)": round(confidence,2)
+            "Confidence (%)": round(confidence, 2)
         })
 
     st.dataframe(
